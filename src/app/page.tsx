@@ -1,65 +1,470 @@
-import Image from "next/image";
+'use client';
 
-export default function Home() {
-  return (
-    <div className="flex min-h-screen items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex min-h-screen w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
+import { useState, useEffect, useRef } from 'react';
+import { motion } from 'framer-motion';
+import { ZoneSelector } from '@/components/dashboard/zone-selector';
+import { PrayerCard } from '@/components/dashboard/prayer-card';
+import { CountdownTimer } from '@/components/dashboard/countdown-timer';
+import { DateDisplay } from '@/components/dashboard/date-display';
+import { LoadingSpinner } from '@/components/dashboard/loading-spinner';
+import { KioskToggle } from '@/components/dashboard/kiosk-toggle';
+import { WeatherWidget } from '@/components/dashboard/weather-widget';
+import { DailyVerseWidget } from '@/components/dashboard/daily-verse-widget';
+import { IslamicGreetingWidget } from '@/components/dashboard/islamic-greeting-widget';
+import { EnableAudioOverlay } from '@/components/dashboard/enable-audio-overlay';
+import { PrayerSplashscreen } from '@/components/dashboard/prayer-splashscreen';
+import {
+  fetchPrayerTimes,
+  formatTimestamp,
+  getNextPrayer,
+  getNextPrayerAfter,
+} from '@/lib/waktu-solat-service';
+import { playAzan, stopAzan } from '@/lib/azan-service';
+import { Zone, PrayerDisplay } from '@/types/waktu-solat';
+
+const DEFAULT_ZONE: Zone = {
+  code: 'WLY01',
+  name: 'Kuala Lumpur',
+  state: 'Wilayah Persekutuan',
+};
+
+export default function DashboardPage() {
+  const [selectedZone, setSelectedZone] = useState<Zone>(DEFAULT_ZONE);
+  const [prayerTimes, setPrayerTimes] = useState<PrayerDisplay[]>([]);
+  const [nextPrayer, setNextPrayer] = useState<{
+    name: string;
+    time: number;
+    key: string;
+  } | null>(null);
+  const [hijriDate, setHijriDate] = useState<string>('');
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [currentTime, setCurrentTime] = useState(new Date());
+
+  // Splashscreen and azan state
+  const [showSplashscreen, setShowSplashscreen] = useState(false);
+  const [currentSplashPrayer, setCurrentSplashPrayer] = useState<{
+    name: string;
+    nameArabic: string;
+  } | null>(null);
+  const [isAzanPlaying, setIsAzanPlaying] = useState(false);
+  const azanAudioRef = useRef<HTMLAudioElement | null>(null);
+  const [forceUpdate, setForceUpdate] = useState(0);
+  const [audioEnabled, setAudioEnabled] = useState(false);
+
+  // Ref to store today's prayers for next prayer calculation
+  const todayPrayersRef = useRef<any>(null);
+
+  // Track which prayer we've already triggered azan for to prevent re-triggering
+  const triggeredPrayerRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    loadPrayerTimes();
+
+    // Check if audio is already enabled
+    const hasEnabled = localStorage.getItem('azanAudioEnabled');
+    if (hasEnabled) {
+      setAudioEnabled(true);
+    }
+  }, [selectedZone]);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      const now = new Date();
+      setCurrentTime(now);
+
+      // Reset triggered prayers at midnight (new day)
+      if (now.getHours() === 0 && now.getMinutes() === 0 && now.getSeconds() === 0) {
+        triggeredPrayerRef.current = null;
+        // Reload prayer times for the new day
+        loadPrayerTimes();
+      }
+    }, 1000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const loadPrayerTimes = async () => {
+    setLoading(true);
+    setError(null);
+
+    try {
+      const data = await fetchPrayerTimes(selectedZone.code);
+      const today = new Date().getDate();
+
+      // Get today's prayers
+      const todayPrayers = data.prayers.find((p) => p.day === today);
+
+      if (!todayPrayers) {
+        throw new Error('Prayer times for today not found');
+      }
+
+      // Set Hijri date
+      setHijriDate(todayPrayers.hijri);
+
+      // Convert to display format
+      const prayers: PrayerDisplay[] = [
+        {
+          name: 'Fajr',
+          nameArabic: 'Subuh',
+          time: formatTimestamp(todayPrayers.fajr),
+          timestamp: todayPrayers.fajr,
+          icon: '🌙',
+        },
+        {
+          name: 'Syuruk',
+          nameArabic: 'Sunrise',
+          time: formatTimestamp(todayPrayers.syuruk),
+          timestamp: todayPrayers.syuruk,
+          icon: '🌅',
+        },
+        {
+          name: 'Dhuhr',
+          nameArabic: 'Zohor',
+          time: formatTimestamp(todayPrayers.dhuhr),
+          timestamp: todayPrayers.dhuhr,
+          icon: '☀️',
+        },
+        {
+          name: 'Asr',
+          nameArabic: 'Asar',
+          time: formatTimestamp(todayPrayers.asr),
+          timestamp: todayPrayers.asr,
+          icon: '🌤️',
+        },
+        {
+          name: 'Maghrib',
+          nameArabic: 'Maghrib',
+          time: formatTimestamp(todayPrayers.maghrib),
+          timestamp: todayPrayers.maghrib,
+          icon: '🌅',
+        },
+        {
+          name: 'Isha',
+          nameArabic: 'Isyak',
+          time: formatTimestamp(todayPrayers.isha),
+          timestamp: todayPrayers.isha,
+          icon: '🌙',
+        },
+      ];
+
+      setPrayerTimes(prayers);
+
+      // Store today's prayers for auto-advance after azan
+      todayPrayersRef.current = todayPrayers;
+
+      // Reset triggered prayer when loading new prayer times (new day)
+      triggeredPrayerRef.current = null;
+
+      // Get next prayer
+      const next = getNextPrayer(todayPrayers);
+      setNextPrayer(next);
+
+      setLoading(false);
+    } catch (err) {
+      console.error('Error loading prayer times:', err);
+
+      // Better error message with zone info
+      setError(`Zone "${selectedZone.name}" (${selectedZone.code}) is not available. Please try another zone.`);
+      setLoading(false);
+    }
+  };
+
+  // Function to trigger azan and splashscreen
+  const triggerAzan = (prayerName: string, prayerNameArabic: string, shouldAutoAdvance = true) => {
+    // Stop any playing azan first
+    if (azanAudioRef.current) {
+      stopAzan(azanAudioRef.current);
+    }
+
+    // Set splashscreen state
+    setCurrentSplashPrayer({ name: prayerName, nameArabic: prayerNameArabic });
+    setShowSplashscreen(true);
+    setIsAzanPlaying(true);
+
+    // Get the prayer key to use for auto-advance
+    const prayerKey = prayerName.toLowerCase();
+
+    // Play azan
+    const audio = playAzan(prayerName, () => {
+      // When azan finishes
+      setIsAzanPlaying(false);
+      setTimeout(() => {
+        setShowSplashscreen(false);
+
+        // Only auto-advance if this was an automatic trigger (not manual debug button)
+        if (shouldAutoAdvance && todayPrayersRef.current) {
+          const next = getNextPrayerAfter(todayPrayersRef.current, prayerKey);
+          setNextPrayer(next);
+
+          // Clear triggered flag for the next prayer
+          triggeredPrayerRef.current = null;
+          setForceUpdate(prev => prev + 1);
+        }
+      }, 1000); // Small delay before hiding splashscreen
+    });
+
+    azanAudioRef.current = audio;
+  };
+
+  // Monitor current time and trigger azan when it matches prayer time
+  useEffect(() => {
+    if (!todayPrayersRef.current || showSplashscreen || !audioEnabled) return;
+
+    const now = Math.floor(Date.now() / 1000);
+    const currentMinute = Math.floor(now / 60); // Current time in minutes
+
+    // Check each prayer time
+    for (const prayer of prayerTimes) {
+      const prayerMinute = Math.floor(prayer.timestamp / 60);
+      const prayerKey = prayer.name.toLowerCase();
+
+      // Trigger azan if:
+      // 1. Current minute matches prayer minute
+      // 2. We haven't triggered for this prayer yet
+      const minuteMatches = currentMinute === prayerMinute;
+      const notYetTriggered = triggeredPrayerRef.current !== prayerKey;
+
+      if (minuteMatches && notYetTriggered) {
+        // Mark this prayer as triggered
+        triggeredPrayerRef.current = prayerKey;
+        triggerAzan(prayer.name, prayer.nameArabic);
+        break; // Only trigger one prayer at a time
+      }
+    }
+  }, [currentTime, showSplashscreen, prayerTimes, audioEnabled]);
+
+  // Handle test azan button click
+  const handleTestAzan = (prayerName: string, prayerNameArabic: string) => {
+    // Reset triggered flag to allow manual testing for any prayer
+    triggeredPrayerRef.current = null;
+    // Pass false to NOT auto-advance after azan (this is just a test)
+    triggerAzan(prayerName, prayerNameArabic, false);
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-emerald-950 p-4 md:p-8">
+        <LoadingSpinner />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-emerald-950 flex items-center justify-center p-4">
+        <motion.div
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="text-center max-w-md"
+        >
+          <div className="text-6xl mb-4">⚠️</div>
+          <h2 className="text-2xl font-bold text-white mb-2">Zone Not Available</h2>
+          <p className="text-slate-300 mb-6">{error}</p>
+          <p className="text-sm text-slate-500">
+            Please select a different zone from the list above.
           </p>
+        </motion.div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-emerald-950">
+      {/* Animated background particles */}
+      <div className="fixed inset-0 overflow-hidden pointer-events-none">
+        {[...Array(15)].map((_, i) => (
+          <motion.div
+            key={i}
+            className="absolute w-1 h-1 bg-emerald-500/20 rounded-full"
+            style={{
+              left: `${Math.random() * 100}%`,
+              top: `${Math.random() * 100}%`,
+            }}
+            animate={{
+              y: [0, -100, 0],
+              opacity: [0, 0.5, 0],
+            }}
+            transition={{
+              duration: 10 + Math.random() * 10,
+              repeat: Infinity,
+              delay: Math.random() * 5,
+            }}
+          />
+        ))}
+      </div>
+
+      {/* Content */}
+      <div className="relative z-10 p-3 md:p-6 max-w-7xl mx-auto">
+        {/* Header */}
+        <motion.header
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6 }}
+          className="flex items-center justify-between mb-4"
+        >
+          <div className="flex items-center gap-2 md:gap-3">
+            <div className="p-2 md:p-3 bg-gradient-to-br from-emerald-500 to-teal-500 rounded-xl text-2xl md:text-4xl">
+              🕌
+            </div>
+            <div>
+              <h1 className="text-xl md:text-3xl font-bold text-white leading-tight">
+                Waktu Solat
+              </h1>
+              <p className="text-xs md:text-sm text-emerald-400">Prayer Times Malaysia</p>
+            </div>
+          </div>
+
+          {/* Current Time */}
+          <div className="text-right">
+            <p className="text-xs md:text-sm text-slate-400">Current Time</p>
+            <p className="text-base md:text-2xl font-bold text-white font-mono tabular-nums">
+              {currentTime.toLocaleTimeString('en-US', {
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit',
+                hour12: true,
+              })}
+            </p>
+          </div>
+        </motion.header>
+
+        {/* Main Content Grid */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-3 md:gap-4 mb-3 md:mb-4">
+          {/* Left Column - Zone, Countdown, Date, Weather */}
+          <div className="lg:col-span-4 flex flex-col gap-2 md:gap-3">
+            {/* Zone Selector */}
+            <motion.div
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.1 }}
+            >
+              <ZoneSelector
+                selectedZone={selectedZone}
+                onZoneChange={setSelectedZone}
+              />
+            </motion.div>
+
+            {/* Countdown Timer */}
+            {nextPrayer && (
+              <motion.div
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 0.2 }}
+              >
+                <CountdownTimer
+                  key={`${nextPrayer.key}-${forceUpdate}`}
+                  targetTimestamp={nextPrayer.time}
+                  prayerName={nextPrayer.name}
+                />
+              </motion.div>
+            )}
+
+            {/* Date Display */}
+            <motion.div
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.3 }}
+            >
+              <DateDisplay
+                hijriDate={hijriDate}
+                zoneName={selectedZone.name}
+              />
+            </motion.div>
+
+            {/* Weather Widget */}
+            <motion.div
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.4 }}
+            >
+              <WeatherWidget zone={selectedZone} />
+            </motion.div>
+          </div>
+
+          {/* Right Column - Prayer Times */}
+          <div className="lg:col-span-8">
+            <motion.div
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.4 }}
+              className="bg-slate-900/30 backdrop-blur-sm border border-slate-700/50 rounded-2xl p-3 md:p-5"
+            >
+              <h2 className="text-lg md:text-2xl font-bold text-white mb-3 md:mb-4">
+                Today's Prayer Times
+              </h2>
+
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-2 md:gap-3">
+                {prayerTimes.map((prayer, index) => (
+                  <PrayerCard
+                    key={prayer.name}
+                    prayer={prayer}
+                    index={index}
+                    isNext={nextPrayer?.key === prayer.name.toLowerCase()}
+                    onTestAzan={handleTestAzan}
+                  />
+                ))}
+              </div>
+            </motion.div>
+          </div>
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+
+        {/* Bottom Row - Daily Verse & Greeting */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4 mb-3 md:mb-4">
+          {/* Islamic Greeting */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.5 }}
           >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+            <IslamicGreetingWidget />
+          </motion.div>
+
+          {/* Daily Verse */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.6 }}
           >
-            Documentation
-          </a>
+            <DailyVerseWidget />
+          </motion.div>
         </div>
-      </main>
+
+        {/* Footer */}
+        <motion.footer
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.8 }}
+          className="text-center"
+        >
+          <p className="text-xs text-slate-500">
+            Data from JAKIM e-Solat • API by{' '}
+            <a
+              href="https://api.waktusolat.app"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-emerald-400 hover:text-emerald-300 transition-colors"
+            >
+              Waktu Solat Project
+            </a>
+          </p>
+        </motion.footer>
+      </div>
+
+      {/* Kiosk Mode Toggle */}
+      <KioskToggle />
+
+      {/* Enable Audio Overlay */}
+      {!audioEnabled && <EnableAudioOverlay onEnable={() => setAudioEnabled(true)} />}
+
+      {/* Prayer Splashscreen */}
+      {currentSplashPrayer && (
+        <PrayerSplashscreen
+          isVisible={showSplashscreen}
+          prayerName={currentSplashPrayer.name}
+          prayerNameArabic={currentSplashPrayer.nameArabic}
+          isPlaying={isAzanPlaying}
+        />
+      )}
     </div>
   );
 }
