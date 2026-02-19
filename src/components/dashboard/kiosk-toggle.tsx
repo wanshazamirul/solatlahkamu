@@ -28,10 +28,10 @@ export function KioskToggle() {
     document.addEventListener('keydown', handleKeyPress);
 
     // Auto-enter fullscreen on first visit (with user gesture check)
-    const hasSeenKioskHint = localStorage.getItem('waktu-solat-kiosk-hint');
-    if (!hasSeenKioskHint) {
+    const hasSeenFullscreenHint = localStorage.getItem('waktu-solat-fullscreen-hint');
+    if (!hasSeenFullscreenHint) {
       // Don't auto-enter, just show hint
-      localStorage.setItem('waktu-solat-kiosk-hint', 'true');
+      localStorage.setItem('waktu-solat-fullscreen-hint', 'true');
     }
 
     return () => {
@@ -50,7 +50,7 @@ export function KioskToggle() {
     }
   };
 
-  // Don't render button when in fullscreen (kiosk mode)
+  // Don't render button when in fullscreen
   if (isFullscreen) {
     return null;
   }
@@ -67,11 +67,11 @@ export function KioskToggle() {
         whileHover={{ scale: 1.1 }}
         whileTap={{ scale: 0.9 }}
         className="group relative flex items-center gap-2 px-4 py-3 bg-slate-900/80 backdrop-blur-sm border border-slate-700/50 rounded-xl hover:bg-slate-800/80 transition-all"
-        title={`Press 'F' to enter kiosk mode, 'ESC' to exit`}
+        title={`Press 'F' to enter fullscreen, 'ESC' to exit`}
       >
         <span className="text-2xl">⛶</span>
         <span className="text-white font-semibold text-sm">
-          Kiosk Mode
+          Fullscreen Mode
         </span>
 
         {/* Keyboard shortcut hint */}

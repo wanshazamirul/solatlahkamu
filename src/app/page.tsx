@@ -450,7 +450,7 @@ export default function DashboardPage() {
         </motion.footer>
       </div>
 
-      {/* Kiosk Mode Toggle */}
+      {/* Fullscreen Mode Toggle */}
       <KioskToggle />
 
       {/* Enable Audio Overlay */}
