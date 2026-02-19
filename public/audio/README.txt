@@ -1,18 +1,25 @@
 # Azan Audio Files
 
-This folder contains the azan (call to prayer) audio files.
+This folder contains the azan (call to prayer) audio files by Mishary Rashid Alafasy.
 
 ## Current Setup:
 
-Using a single Mishary Rashid Alafasy azan for all prayer times:
-- azan.mp3 - Main azan file (used for all 5 prayers)
+Two different azan recordings:
+- **fajr.mp3** (3.4 MB) - Special Fajr azan with "Assalaatu khairun minan nawm"
+- **others.mp3** (2.9 MB) - General azan for Dhuhr, Asr, Maghrib, Isha
 
 ## Reciter:
 
-Mishary Rashid Alafasy - Maqam Hijaz
+Mishary Rashid Alafasy
 - One of the most famous Quran reciters
 - Beautiful, clear voice
-- Traditional hijaz melody
+- Traditional melody
+
+## Usage:
+
+- **Fajr (Subuh)** → Uses fajr.mp3
+- **Dhuhr, Asr, Maghrib, Isha** → Uses others.mp3
+- **Syuruk (Sunrise)** → Uses others.mp3
 
 ## Recommended Audio Format:
 

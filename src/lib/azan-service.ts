@@ -9,13 +9,20 @@ export interface AzanConfig {
 
 /**
  * Get the local audio file URL for a prayer
- * Uses a single azan file for all prayers
+ * Fajr uses special fajr azan, others use general azan
  * @param prayerName - Name of the prayer
  * @returns URL to local audio file
  */
 export function getLocalAzanUrl(prayerName: string): string {
-  // Using the same Mishary Rashid Alafasy azan for all prayers
-  return '/audio/azan.mp3';
+  const key = prayerName.toLowerCase();
+
+  // Fajr has its own special azan (with "assalaatu khairun minan nawm")
+  if (key === 'fajr') {
+    return '/audio/fajr.mp3';
+  }
+
+  // All other prayers use the general azan
+  return '/audio/others.mp3';
 }
 
 export function getAzanUrl(prayerName: string): string {
