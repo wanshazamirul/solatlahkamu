@@ -20,16 +20,15 @@ import {
   getNextPrayerAfter,
 } from '@/lib/waktu-solat-service';
 import { playAzan, stopAzan } from '@/lib/azan-service';
-import { Zone, PrayerDisplay } from '@/types/waktu-solat';
+import { startZoneChecking } from '@/lib/zone-service';
+import { DEFAULT_ZONE, Zone, PrayerDisplay } from '@/types/waktu-solat';
 
-const DEFAULT_ZONE: Zone = {
-  code: 'WLY01',
-  name: 'Kuala Lumpur',
-  state: 'Wilayah Persekutuan',
-};
+const initialZone: Zone = DEFAULT_ZONE;
 
 export default function DashboardPage() {
   const [selectedZone, setSelectedZone] = useState<Zone>(DEFAULT_ZONE);
+  const [availableZones, setAvailableZones] = useState<Zone[]>([DEFAULT_ZONE]);
+  const [isCheckingZones, setIsCheckingZones] = useState(true);
   const [prayerTimes, setPrayerTimes] = useState<PrayerDisplay[]>([]);
   const [nextPrayer, setNextPrayer] = useState<{
     name: string;
@@ -67,6 +66,26 @@ export default function DashboardPage() {
       setAudioEnabled(true);
     }
   }, [selectedZone]);
+
+  // Start dynamic zone checking
+  useEffect(() => {
+    const cleanup = startZoneChecking((zones) => {
+      setAvailableZones(zones);
+      setIsCheckingZones(false);
+
+      // If current zone is not in working zones, switch to first available
+      const currentZoneValid = zones.find(z => z.code === selectedZone.code);
+      if (!currentZoneValid && zones.length > 0) {
+        console.log(`[Zone] Current zone ${selectedZone.name} not available, switching to ${zones[0].name}`);
+        setSelectedZone(zones[0]);
+        loadPrayerTimes();
+      }
+    });
+
+    return () => {
+      if (cleanup) cleanup();
+    };
+  }, []);
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -341,6 +360,8 @@ export default function DashboardPage() {
               <ZoneSelector
                 selectedZone={selectedZone}
                 onZoneChange={setSelectedZone}
+                zones={availableZones}
+                isLoading={isCheckingZones}
               />
             </motion.div>
 

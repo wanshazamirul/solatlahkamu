@@ -1,26 +1,28 @@
 'use client';
 
 import { motion, AnimatePresence } from 'framer-motion';
-import { MapPin, ChevronDown } from 'lucide-react';
+import { MapPin, ChevronDown, Loader2 } from 'lucide-react';
 import { useState } from 'react';
-import { ZONES, Zone } from '@/types/waktu-solat';
+import { Zone } from '@/types/waktu-solat';
 import { cn } from '@/lib/utils';
 
 interface ZoneSelectorProps {
   selectedZone: Zone;
   onZoneChange: (zone: Zone) => void;
+  zones: Zone[];
+  isLoading?: boolean;
 }
 
-export function ZoneSelector({ selectedZone, onZoneChange }: ZoneSelectorProps) {
+export function ZoneSelector({ selectedZone, onZoneChange, zones, isLoading = false }: ZoneSelectorProps) {
   const [isOpen, setIsOpen] = useState(false);
 
   return (
     <div className="relative">
       {/* Selector Button */}
       <motion.button
-        onClick={() => setIsOpen(!isOpen)}
-        whileHover={{ scale: 1.02 }}
-        whileTap={{ scale: 0.98 }}
+        onClick={() => !isLoading && setIsOpen(!isOpen)}
+        whileHover={{ scale: isLoading ? 1 : 1.02 }}
+        whileTap={{ scale: isLoading ? 1 : 0.98 }}
         className={cn(
           'w-full flex items-center justify-between gap-4 p-4 rounded-xl backdrop-blur-sm border transition-all duration-300',
           isOpen
@@ -34,7 +36,11 @@ export function ZoneSelector({ selectedZone, onZoneChange }: ZoneSelectorProps) 
             transition={{ duration: 0.5 }}
             className="p-2 bg-emerald-500/20 rounded-lg"
           >
-            <MapPin className="w-5 h-5 text-emerald-400" />
+            {isLoading ? (
+              <Loader2 className="w-5 h-5 text-emerald-400 animate-spin" />
+            ) : (
+              <MapPin className="w-5 h-5 text-emerald-400" />
+            )}
           </motion.div>
 
           <div className="text-left">
@@ -42,21 +48,25 @@ export function ZoneSelector({ selectedZone, onZoneChange }: ZoneSelectorProps) 
             <p className="text-lg font-semibold text-white">
               {selectedZone.name}
             </p>
-            <p className="text-xs text-emerald-400">{selectedZone.code}</p>
+            <p className="text-xs text-emerald-400">
+              {selectedZone.code} {isLoading && '(Checking zones...)'}
+            </p>
           </div>
         </div>
 
-        <motion.div
-          animate={{ rotate: isOpen ? 180 : 0 }}
-          transition={{ duration: 0.3 }}
-        >
-          <ChevronDown className="w-5 h-5 text-slate-400" />
-        </motion.div>
+        {!isLoading && (
+          <motion.div
+            animate={{ rotate: isOpen ? 180 : 0 }}
+            transition={{ duration: 0.3 }}
+          >
+            <ChevronDown className="w-5 h-5 text-slate-400" />
+          </motion.div>
+        )}
       </motion.button>
 
       {/* Dropdown Menu */}
       <AnimatePresence>
-        {isOpen && (
+        {!isLoading && isOpen && (
           <>
             {/* Backdrop */}
             <motion.div
@@ -77,7 +87,7 @@ export function ZoneSelector({ selectedZone, onZoneChange }: ZoneSelectorProps) 
             >
               {/* Group zones by state */}
               {Object.entries(
-                ZONES.reduce((acc, zone) => {
+                zones.reduce((acc, zone) => {
                   if (!acc[zone.state]) {
                     acc[zone.state] = [];
                   }
