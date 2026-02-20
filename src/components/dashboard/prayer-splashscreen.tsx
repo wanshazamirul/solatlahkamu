@@ -18,6 +18,13 @@ export function PrayerSplashscreen({
   isPlaying,
   onClose,
 }: PrayerSplashscreenProps) {
+  const handleClick = () => {
+    console.log('[Splashscreen] Clicked! Calling onClose...');
+    if (onClose) {
+      onClose();
+    }
+  };
+
   return (
     <AnimatePresence>
       {isVisible && (
@@ -26,7 +33,7 @@ export function PrayerSplashscreen({
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           transition={{ duration: 0.5 }}
-          onClick={onClose}
+          onClick={handleClick}
           className="fixed inset-0 z-50 flex items-center justify-center bg-gradient-to-br from-emerald-950 via-slate-950 to-teal-950 cursor-pointer"
         >
           {/* Animated background particles */}

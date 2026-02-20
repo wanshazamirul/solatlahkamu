@@ -191,42 +191,44 @@ export default function DashboardPage() {
     setCurrentSplashPrayer({ name: prayerName, nameArabic: prayerNameArabic });
     setShowSplashscreen(true);
     setIsAzanPlaying(true);
-    shouldAutoCloseRef.current = true; // Reset auto-close flag
 
     // Get the prayer key to use for auto-advance
     const prayerKey = prayerName.toLowerCase();
 
-    // Auto-close splashscreen after 1 second if audio doesn't play or errors
-    const autoCloseTimeout = setTimeout(() => {
-      if (shouldAutoCloseRef.current) {
-        console.log('[Splashscreen] Auto-closing after timeout');
+    // Always auto-close after 2 seconds for manual test (shouldAutoAdvance = false)
+    // For automatic triggers, let it close naturally when audio finishes
+    if (!shouldAutoAdvance) {
+      setTimeout(() => {
+        console.log('[Splashscreen] Auto-closing test azan after 2 seconds');
         setShowSplashscreen(false);
         setIsAzanPlaying(false);
         if (azanAudioRef.current) {
           stopAzan(azanAudioRef.current);
         }
-      }
-    }, 1000);
+      }, 2000);
+    }
 
     // Play azan
     const audio = playAzan(prayerName, () => {
-      // When azan finishes successfully
-      shouldAutoCloseRef.current = false; // Don't auto-close anymore
-      clearTimeout(autoCloseTimeout); // Clear the auto-close timeout
+      // When azan finishes successfully (only for automatic triggers)
       setIsAzanPlaying(false);
-      setTimeout(() => {
-        setShowSplashscreen(false);
 
-        // Only auto-advance if this was an automatic trigger (not manual debug button)
-        if (shouldAutoAdvance && todayPrayersRef.current) {
-          const next = getNextPrayerAfter(todayPrayersRef.current, prayerKey);
-          setNextPrayer(next);
+      // Only hide splashscreen for automatic triggers
+      if (shouldAutoAdvance) {
+        setTimeout(() => {
+          setShowSplashscreen(false);
 
-          // Clear triggered flag for the next prayer
-          triggeredPrayerRef.current = null;
-          setForceUpdate(prev => prev + 1);
-        }
-      }, 1000); // Small delay before hiding splashscreen
+          // Auto-advance to next prayer
+          if (todayPrayersRef.current) {
+            const next = getNextPrayerAfter(todayPrayersRef.current, prayerKey);
+            setNextPrayer(next);
+
+            // Clear triggered flag for the next prayer
+            triggeredPrayerRef.current = null;
+            setForceUpdate(prev => prev + 1);
+          }
+        }, 1000); // Small delay before hiding splashscreen
+      }
     });
 
     azanAudioRef.current = audio;
@@ -281,13 +283,17 @@ export default function DashboardPage() {
         <motion.div
           initial={{ opacity: 0, scale: 0.9 }}
           animate={{ opacity: 1, scale: 1 }}
-          className="text-center max-w-md"
+          className="text-center max-w-md cursor-pointer hover:scale-105 transition-transform"
+          onClick={() => {
+            setError(null);
+            setSelectedZone(DEFAULT_ZONE);
+          }}
         >
           <div className="text-6xl mb-4">⚠️</div>
           <h2 className="text-2xl font-bold text-white mb-2">Zone Not Available</h2>
           <p className="text-slate-300 mb-6">{error}</p>
           <p className="text-sm text-slate-500">
-            Please select a different zone from the list above.
+            Click here or select a different zone from the list above.
           </p>
         </motion.div>
       </div>
