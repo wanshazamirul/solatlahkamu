@@ -8,6 +8,7 @@ interface PrayerSplashscreenProps {
   prayerName: string;
   prayerNameArabic: string;
   isPlaying: boolean;
+  onClose?: () => void;
 }
 
 export function PrayerSplashscreen({
@@ -15,6 +16,7 @@ export function PrayerSplashscreen({
   prayerName,
   prayerNameArabic,
   isPlaying,
+  onClose,
 }: PrayerSplashscreenProps) {
   return (
     <AnimatePresence>
@@ -24,7 +26,8 @@ export function PrayerSplashscreen({
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           transition={{ duration: 0.5 }}
-          className="fixed inset-0 z-50 flex items-center justify-center bg-gradient-to-br from-emerald-950 via-slate-950 to-teal-950"
+          onClick={onClose}
+          className="fixed inset-0 z-50 flex items-center justify-center bg-gradient-to-br from-emerald-950 via-slate-950 to-teal-950 cursor-pointer"
         >
           {/* Animated background particles */}
           <div className="absolute inset-0 overflow-hidden">

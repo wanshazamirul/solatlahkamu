@@ -483,6 +483,13 @@ export default function DashboardPage() {
           prayerName={currentSplashPrayer.name}
           prayerNameArabic={currentSplashPrayer.nameArabic}
           isPlaying={isAzanPlaying}
+          onClose={() => {
+            setShowSplashscreen(false);
+            setIsAzanPlaying(false);
+            if (azanAudioRef.current) {
+              stopAzan(azanAudioRef.current);
+            }
+          }}
         />
       )}
     </div>
