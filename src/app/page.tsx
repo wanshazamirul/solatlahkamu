@@ -57,6 +57,9 @@ export default function DashboardPage() {
   // Track which prayer we've already triggered azan for to prevent re-triggering
   const triggeredPrayerRef = useRef<string | null>(null);
 
+  // Ref to track if we should auto-close
+  const shouldAutoCloseRef = useRef(true);
+
   useEffect(() => {
     loadPrayerTimes();
 
@@ -188,13 +191,14 @@ export default function DashboardPage() {
     setCurrentSplashPrayer({ name: prayerName, nameArabic: prayerNameArabic });
     setShowSplashscreen(true);
     setIsAzanPlaying(true);
+    shouldAutoCloseRef.current = true; // Reset auto-close flag
 
     // Get the prayer key to use for auto-advance
     const prayerKey = prayerName.toLowerCase();
 
     // Auto-close splashscreen after 1 second if audio doesn't play or errors
     const autoCloseTimeout = setTimeout(() => {
-      if (showSplashscreen) {
+      if (shouldAutoCloseRef.current) {
         console.log('[Splashscreen] Auto-closing after timeout');
         setShowSplashscreen(false);
         setIsAzanPlaying(false);
@@ -206,7 +210,8 @@ export default function DashboardPage() {
 
     // Play azan
     const audio = playAzan(prayerName, () => {
-      // When azan finishes
+      // When azan finishes successfully
+      shouldAutoCloseRef.current = false; // Don't auto-close anymore
       clearTimeout(autoCloseTimeout); // Clear the auto-close timeout
       setIsAzanPlaying(false);
       setTimeout(() => {
