@@ -195,17 +195,15 @@ export default function DashboardPage() {
     // Get the prayer key to use for auto-advance
     const prayerKey = prayerName.toLowerCase();
 
-    // For manual test (shouldAutoAdvance = false), auto-close after 2 seconds
+    // For manual test (shouldAutoAdvance = false), play audio but don't auto-advance
     if (!shouldAutoAdvance) {
-      setTimeout(() => {
-        console.log('[Splashscreen] Auto-closing test azan after 2 seconds');
-        setShowSplashscreen(false);
+      const testAudio = playAzan(prayerName, () => {
+        console.log('[Test Azan] Audio finished, closing splashscreen...');
         setIsAzanPlaying(false);
-        if (azanAudioRef.current) {
-          stopAzan(azanAudioRef.current);
-        }
-      }, 2000);
-      return; // Don't play audio for test azan
+        setShowSplashscreen(false);
+      });
+      azanAudioRef.current = testAudio;
+      return;
     }
 
     // Play azan for automatic triggers
