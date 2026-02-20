@@ -213,23 +213,13 @@ export async function getWorkingZones(forceCheck = false): Promise<Zone[]> {
  * @returns Cleanup function
  */
 export function startZoneChecking(callback: (zones: Zone[]) => void): () => void {
-  console.log(`[Zone Service] Loading zones and validating...`);
+  console.log(`[Zone Service] Loading ${ALL_ZONES.length} zones`);
 
-  // First, immediately show all zones (for instant UI)
+  // Immediately return all zones (no API checking needed)
   callback(ALL_ZONES);
 
-  // Then validate zones and update the list
-  getWorkingZones(false)
-    .then(validZones => {
-      console.log(`[Zone Service] Updating with ${validZones.length} validated zones`);
-      callback(validZones);
-    })
-    .catch(error => {
-      console.error('[Zone Service] Error validating zones:', error);
-      // Keep all zones on error (fallback)
-    });
-
-  // Return cleanup function
+  // Skip zone validation - all zones are available
+  // The API may have rate limiting or validation issues
   return () => {
     console.log('[Zone Service] Stopped zone checking');
   };
