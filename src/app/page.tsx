@@ -195,8 +195,7 @@ export default function DashboardPage() {
     // Get the prayer key to use for auto-advance
     const prayerKey = prayerName.toLowerCase();
 
-    // Always auto-close after 2 seconds for manual test (shouldAutoAdvance = false)
-    // For automatic triggers, let it close naturally when audio finishes
+    // For manual test (shouldAutoAdvance = false), auto-close after 2 seconds
     if (!shouldAutoAdvance) {
       setTimeout(() => {
         console.log('[Splashscreen] Auto-closing test azan after 2 seconds');
@@ -206,29 +205,30 @@ export default function DashboardPage() {
           stopAzan(azanAudioRef.current);
         }
       }, 2000);
+      return; // Don't play audio for test azan
     }
 
-    // Play azan
+    // Play azan for automatic triggers
     const audio = playAzan(prayerName, () => {
-      // When azan finishes successfully (only for automatic triggers)
+      // When azan finishes successfully
+      console.log('[Azan] Audio finished, hiding splashscreen in 1 second...');
       setIsAzanPlaying(false);
 
-      // Only hide splashscreen for automatic triggers
-      if (shouldAutoAdvance) {
-        setTimeout(() => {
-          setShowSplashscreen(false);
+      setTimeout(() => {
+        setShowSplashscreen(false);
 
-          // Auto-advance to next prayer
-          if (todayPrayersRef.current) {
-            const next = getNextPrayerAfter(todayPrayersRef.current, prayerKey);
-            setNextPrayer(next);
+        // Auto-advance to next prayer
+        if (todayPrayersRef.current) {
+          const next = getNextPrayerAfter(todayPrayersRef.current, prayerKey);
+          setNextPrayer(next);
 
-            // Clear triggered flag for the next prayer
-            triggeredPrayerRef.current = null;
-            setForceUpdate(prev => prev + 1);
-          }
-        }, 1000); // Small delay before hiding splashscreen
-      }
+          // Clear triggered flag for the next prayer
+          triggeredPrayerRef.current = null;
+          setForceUpdate(prev => prev + 1);
+
+          console.log('[Azan] Advanced to next prayer:', next);
+        }
+      }, 1000); // Small delay before hiding splashscreen
     });
 
     azanAudioRef.current = audio;

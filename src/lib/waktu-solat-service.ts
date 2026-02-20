@@ -95,6 +95,8 @@ export function getNextPrayer(prayers: { [key: string]: number } | PrayerTime) {
 
   for (const prayer of prayerOrder) {
     const prayerTime = (prayers as { [key: string]: number })[prayer.key];
+    // Check if prayer time is in the future (strictly greater than now)
+    // This ensures that when we're AT the prayer time, we don't return that prayer
     if (prayerTime && prayerTime > now) {
       return {
         name: prayer.name,
