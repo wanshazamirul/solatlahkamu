@@ -192,9 +192,22 @@ export default function DashboardPage() {
     // Get the prayer key to use for auto-advance
     const prayerKey = prayerName.toLowerCase();
 
+    // Auto-close splashscreen after 1 second if audio doesn't play or errors
+    const autoCloseTimeout = setTimeout(() => {
+      if (showSplashscreen) {
+        console.log('[Splashscreen] Auto-closing after timeout');
+        setShowSplashscreen(false);
+        setIsAzanPlaying(false);
+        if (azanAudioRef.current) {
+          stopAzan(azanAudioRef.current);
+        }
+      }
+    }, 1000);
+
     // Play azan
     const audio = playAzan(prayerName, () => {
       // When azan finishes
+      clearTimeout(autoCloseTimeout); // Clear the auto-close timeout
       setIsAzanPlaying(false);
       setTimeout(() => {
         setShowSplashscreen(false);
