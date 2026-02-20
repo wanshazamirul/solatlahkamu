@@ -83,19 +83,6 @@ export function PrayerSplashscreen({
               {prayerName}
             </motion.h2>
 
-            {/* Audio playing indicator */}
-            {isPlaying && (
-              <motion.div
-                initial={{ opacity: 0, scale: 0.8 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ delay: 1, repeat: Infinity, duration: 1.5, repeatType: 'reverse' }}
-                className="flex items-center justify-center gap-3 text-emerald-400"
-              >
-                <Volume2 className="w-6 h-6 md:w-8 md:h-8" />
-                <p className="text-lg md:text-xl font-medium">Playing Azan...</p>
-              </motion.div>
-            )}
-
             {/* Decorative divider */}
             <motion.div
               initial={{ scaleX: 0 }}

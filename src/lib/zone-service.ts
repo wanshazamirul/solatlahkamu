@@ -213,23 +213,12 @@ export async function getWorkingZones(forceCheck = false): Promise<Zone[]> {
  * @returns Cleanup function
  */
 export function startZoneChecking(callback: (zones: Zone[]) => void): () => void {
-  // Initial check
-  getWorkingZones(true).then(zones => {
-    callback(zones);
-  });
+  // Immediately return all zones (no API checking needed)
+  console.log(`[Zone Service] Loading ${ALL_ZONES.length} zones`);
+  callback(ALL_ZONES);
 
-  // Set up periodic re-checking
-  const interval = setInterval(async () => {
-    console.log('[Zone Service] Re-checking zones...');
-    const zones = await getWorkingZones(true);
-    callback(zones);
-  }, CHECK_INTERVAL);
-
-  console.log(`[Zone Service] Started periodic checking (every ${CHECK_INTERVAL / 1000 / 60 / 60} hours)`);
-
-  // Return cleanup function
+  // No periodic checking needed - all zones are available
   return () => {
-    clearInterval(interval);
-    console.log('[Zone Service] Stopped periodic checking');
+    console.log('[Zone Service] Stopped zone checking');
   };
 }

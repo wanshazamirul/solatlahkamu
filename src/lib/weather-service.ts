@@ -1,6 +1,8 @@
 // Malaysia Weather API Service (data.gov.my)
 
 const WEATHER_API_BASE = 'https://api.data.gov.my/weather/forecast';
+const CACHE_KEY = 'weather-cache';
+const CACHE_DURATION = 2 * 60 * 60 * 1000; // 2 hours
 
 export interface WeatherLocation {
   location_id: string;
@@ -19,13 +21,32 @@ export interface WeatherData {
   max_temp: number;
 }
 
+interface WeatherCache {
+  data: WeatherData[];
+  timestamp: number;
+}
+
 /**
- * Fetch weather forecast for a location
+ * Fetch weather forecast for a location (with caching)
  * @param locationName - Location name (e.g., "Kuala Lumpur", "Putrajaya")
- * @returns Weather forecast data
+ * @returns Weather forecast data or empty array on error
  */
 export async function fetchWeatherForecast(locationName?: string): Promise<WeatherData[]> {
   try {
+    // Check cache first
+    const cacheKey = locationName ? `${CACHE_KEY}-${locationName}` : CACHE_KEY;
+    const cached = localStorage.getItem(cacheKey);
+
+    if (cached) {
+      const cache: WeatherCache = JSON.parse(cached);
+      const cacheAge = Date.now() - cache.timestamp;
+
+      if (cacheAge < CACHE_DURATION) {
+        console.log(`[Weather] Using cached data (${(cacheAge / 1000 / 60).toFixed(0)} min old)`);
+        return cache.data;
+      }
+    }
+
     let url = WEATHER_API_BASE;
 
     if (locationName) {
@@ -36,7 +57,15 @@ export async function fetchWeatherForecast(locationName?: string): Promise<Weath
     const response = await fetch(url);
 
     if (!response.ok) {
-      throw new Error(`Weather API Error: ${response.status} ${response.statusText}`);
+      if (response.status === 429) {
+        console.warn('[Weather] API rate limited, using cached data if available');
+        // Return cached data even if expired
+        if (cached) {
+          const cache: WeatherCache = JSON.parse(cached);
+          return cache.data;
+        }
+      }
+      throw new Error(`Weather API Error: ${response.status}`);
     }
 
     const data = await response.json();
@@ -46,10 +75,29 @@ export async function fetchWeatherForecast(locationName?: string): Promise<Weath
       throw new Error('Invalid weather API response format');
     }
 
+    // Cache the result
+    const cacheData: WeatherCache = {
+      data,
+      timestamp: Date.now(),
+    };
+    localStorage.setItem(cacheKey, JSON.stringify(cacheData));
+
     return data;
   } catch (error) {
-    console.error('Error fetching weather:', error);
-    throw error;
+    console.error('[Weather] Error fetching weather:', error);
+
+    // Try to return cached data on error
+    const cacheKey = locationName ? `${CACHE_KEY}-${locationName}` : CACHE_KEY;
+    const cached = localStorage.getItem(cacheKey);
+
+    if (cached) {
+      console.log('[Weather] Using cached data due to error');
+      const cache: WeatherCache = JSON.parse(cached);
+      return cache.data;
+    }
+
+    // Return empty array on error (widget will show error state)
+    return [];
   }
 }
 
@@ -57,7 +105,7 @@ export async function fetchWeatherForecast(locationName?: string): Promise<Weath
  * Map prayer zones to weather location IDs
  * Based on Malaysian state codes
  */
-export function mapZoneToWeatherLocation(zoneCode: string): string {
+export function mapZoneToWeatherLocation(zoneCode: string): string | null {
   // The weather API uses location_name filtering instead of location_id
   // We'll filter by location name instead
 
@@ -90,7 +138,7 @@ export function mapZoneToWeatherLocation(zoneCode: string): string {
     'PHT01': 'Kuantan',
   };
 
-  return zoneMapping[zoneCode] || 'Kuala Lumpur';
+  return zoneMapping[zoneCode] || null; // Return null instead of defaulting to Kuala Lumpur
 }
 
 /**

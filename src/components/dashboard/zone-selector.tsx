@@ -31,17 +31,13 @@ export function ZoneSelector({ selectedZone, onZoneChange, zones, isLoading = fa
         )}
       >
         <div className="flex items-center gap-3">
-          <motion.div
-            animate={{ rotate: isOpen ? 360 : 0 }}
-            transition={{ duration: 0.5 }}
-            className="p-2 bg-emerald-500/20 rounded-lg"
-          >
+          <div className="p-2 bg-emerald-500/20 rounded-lg">
             {isLoading ? (
               <Loader2 className="w-5 h-5 text-emerald-400 animate-spin" />
             ) : (
               <MapPin className="w-5 h-5 text-emerald-400" />
             )}
-          </motion.div>
+          </div>
 
           <div className="text-left">
             <p className="text-xs text-slate-400">Selected Zone</p>
@@ -66,7 +62,7 @@ export function ZoneSelector({ selectedZone, onZoneChange, zones, isLoading = fa
 
       {/* Dropdown Menu */}
       <AnimatePresence>
-        {!isLoading && isOpen && (
+        {isOpen && (
           <>
             {/* Backdrop */}
             <motion.div
@@ -85,77 +81,96 @@ export function ZoneSelector({ selectedZone, onZoneChange, zones, isLoading = fa
               transition={{ duration: 0.2, ease: 'easeOut' }}
               className="absolute z-20 w-full mt-2 max-h-96 overflow-y-auto rounded-xl bg-slate-900/95 backdrop-blur-xl border border-slate-700/50 shadow-2xl"
             >
-              {/* Group zones by state */}
-              {Object.entries(
-                zones.reduce((acc, zone) => {
-                  if (!acc[zone.state]) {
-                    acc[zone.state] = [];
-                  }
-                  acc[zone.state].push(zone);
-                  return acc;
-                }, {} as Record<string, Zone[]>)
-              ).map(([state, zones], stateIndex) => (
-                <div key={state}>
-                  {/* State Header */}
-                  <motion.div
-                    initial={{ opacity: 0, x: -20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: stateIndex * 0.05 }}
-                    className="sticky top-0 bg-slate-900/95 backdrop-blur-xl px-4 py-2 border-b border-slate-700/50 z-10"
-                  >
-                    <p className="text-xs font-semibold text-emerald-400 uppercase tracking-wider">
-                      {state}
-                    </p>
-                  </motion.div>
-
-                  {/* Zone Options */}
-                  {zones.map((zone, zoneIndex) => (
-                    <motion.button
-                      key={zone.code}
-                      onClick={() => {
-                        onZoneChange(zone);
-                        setIsOpen(false);
-                      }}
-                      initial={{ opacity: 0, x: -20 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      transition={{ delay: stateIndex * 0.05 + zoneIndex * 0.02 }}
-                      whileHover={{ x: 4, backgroundColor: 'rgba(16, 185, 129, 0.1)' }}
-                      whileTap={{ scale: 0.98 }}
-                      className={cn(
-                        'w-full flex items-center justify-between gap-3 px-4 py-3 transition-all duration-200',
-                        selectedZone.code === zone.code
-                          ? 'bg-emerald-500/20 border-l-2 border-emerald-500'
-                          : 'hover:bg-slate-800/50'
-                      )}
-                    >
-                      <div className="flex items-center gap-3">
-                        <MapPin className="w-4 h-4 text-slate-500" />
-                        <div className="text-left">
-                          <p
-                            className={cn(
-                              'text-sm font-medium',
-                              selectedZone.code === zone.code
-                                ? 'text-emerald-400'
-                                : 'text-slate-300'
-                            )}
-                          >
-                            {zone.name}
-                          </p>
-                          <p className="text-xs text-slate-500">{zone.code}</p>
-                        </div>
-                      </div>
-
-                      {selectedZone.code === zone.code && (
-                        <motion.div
-                          initial={{ scale: 0 }}
-                          animate={{ scale: 1 }}
-                          className="w-2 h-2 bg-emerald-500 rounded-full"
-                        />
-                      )}
-                    </motion.button>
-                  ))}
+              {/* Loading State */}
+              {isLoading && (
+                <div className="flex items-center justify-center gap-3 py-8">
+                  <Loader2 className="w-5 h-5 text-emerald-400 animate-spin" />
+                  <p className="text-sm text-slate-400">Checking available zones...</p>
                 </div>
-              ))}
+              )}
+
+              {/* Zone List */}
+              {!isLoading && zones.length === 0 && (
+                <div className="flex items-center justify-center py-8">
+                  <p className="text-sm text-slate-500">No zones available</p>
+                </div>
+              )}
+
+              {/* Group zones by state */}
+              {!isLoading && zones.length > 0 && (
+                <>
+                  {Object.entries(
+                    zones.reduce((acc, zone) => {
+                      if (!acc[zone.state]) {
+                        acc[zone.state] = [];
+                      }
+                      acc[zone.state].push(zone);
+                      return acc;
+                    }, {} as Record<string, Zone[]>)
+                  ).map(([state, zonesInState], stateIndex) => (
+                    <div key={state}>
+                      {/* State Header */}
+                      <motion.div
+                        initial={{ opacity: 0, x: -20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ delay: stateIndex * 0.05 }}
+                        className="sticky top-0 bg-slate-900/95 backdrop-blur-xl px-4 py-2 border-b border-slate-700/50 z-10"
+                      >
+                        <p className="text-xs font-semibold text-emerald-400 uppercase tracking-wider">
+                          {state}
+                        </p>
+                      </motion.div>
+
+                      {/* Zone Options */}
+                      {zonesInState.map((zone, zoneIndex) => (
+                        <motion.button
+                          key={zone.code}
+                          onClick={() => {
+                            onZoneChange(zone);
+                            setIsOpen(false);
+                          }}
+                          initial={{ opacity: 0, x: -20 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          transition={{ delay: stateIndex * 0.05 + zoneIndex * 0.02 }}
+                          whileHover={{ x: 4, backgroundColor: 'rgba(16, 185, 129, 0.1)' }}
+                          whileTap={{ scale: 0.98 }}
+                          className={cn(
+                            'w-full flex items-center justify-between gap-3 px-4 py-3 transition-all duration-200',
+                            selectedZone.code === zone.code
+                              ? 'bg-emerald-500/20 border-l-2 border-emerald-500'
+                              : 'hover:bg-slate-800/50'
+                          )}
+                        >
+                          <div className="flex items-center gap-3">
+                            <MapPin className="w-4 h-4 text-slate-500" />
+                            <div className="text-left">
+                              <p
+                                className={cn(
+                                  'text-sm font-medium',
+                                  selectedZone.code === zone.code
+                                    ? 'text-emerald-400'
+                                    : 'text-slate-300'
+                                )}
+                              >
+                                {zone.name}
+                              </p>
+                              <p className="text-xs text-slate-500">{zone.code}</p>
+                            </div>
+                          </div>
+
+                          {selectedZone.code === zone.code && (
+                            <motion.div
+                              initial={{ scale: 0 }}
+                              animate={{ scale: 1 }}
+                              className="w-2 h-2 bg-emerald-500 rounded-full"
+                            />
+                          )}
+                        </motion.button>
+                      ))}
+                    </div>
+                  ))}
+                </>
+              )}
             </motion.div>
           </>
         )}

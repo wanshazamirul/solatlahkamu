@@ -30,6 +30,14 @@ export function WeatherWidget({ zone }: WeatherWidgetProps) {
 
     try {
       const locationName = mapZoneToWeatherLocation(zone.code);
+
+      // If no location mapping exists, show "No info"
+      if (!locationName) {
+        setError('No weather information for this zone');
+        setLoading(false);
+        return;
+      }
+
       const data = await fetchWeatherForecast(locationName);
 
       if (data && data.length > 0) {
@@ -92,7 +100,24 @@ export function WeatherWidget({ zone }: WeatherWidgetProps) {
   }
 
   if (error || !weather) {
-    return null; // Don't show widget if error
+    return (
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.6 }}
+        className="bg-gradient-to-br from-blue-900/30 to-indigo-900/30 backdrop-blur-sm border border-blue-500/30 rounded-2xl p-6"
+      >
+        <div className="flex items-center gap-3">
+          <div className="p-3 bg-blue-500/20 rounded-xl">
+            <Cloud className="w-6 h-6 text-blue-400" />
+          </div>
+          <div>
+            <p className="text-xs text-blue-300/80 font-medium">Weather Forecast</p>
+            <p className="text-sm text-slate-400">No weather information available</p>
+          </div>
+        </div>
+      </motion.div>
+    );
   }
 
   const WeatherIcon = getWeatherIcon(weather.forecast);

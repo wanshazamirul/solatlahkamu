@@ -84,9 +84,9 @@ export function formatTimestamp(timestamp: number): string {
 export function getNextPrayer(prayers: { [key: string]: number } | PrayerTime) {
   const now = Math.floor(Date.now() / 1000); // Current time in seconds
 
+  // Skip Syuruk (sunrise) - it's not a prayer time with azan
   const prayerOrder: Array<{ key: string; name: string }> = [
     { key: 'fajr', name: 'Fajr' },
-    { key: 'syuruk', name: 'Syuruk' },
     { key: 'dhuhr', name: 'Dhuhr' },
     { key: 'asr', name: 'Asr' },
     { key: 'maghrib', name: 'Maghrib' },
@@ -123,9 +123,9 @@ export function getNextPrayerAfter(
   prayers: { [key: string]: number } | PrayerTime,
   currentPrayerKey: string
 ) {
+  // Skip Syuruk (sunrise) - it's not a prayer time with azan
   const prayerOrder: Array<{ key: string; name: string }> = [
     { key: 'fajr', name: 'Fajr' },
-    { key: 'syuruk', name: 'Syuruk' },
     { key: 'dhuhr', name: 'Dhuhr' },
     { key: 'asr', name: 'Asr' },
     { key: 'maghrib', name: 'Maghrib' },

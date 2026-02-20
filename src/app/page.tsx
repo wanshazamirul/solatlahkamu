@@ -5,12 +5,13 @@ import { motion } from 'framer-motion';
 import { ZoneSelector } from '@/components/dashboard/zone-selector';
 import { PrayerCard } from '@/components/dashboard/prayer-card';
 import { CountdownTimer } from '@/components/dashboard/countdown-timer';
-import { DateDisplay } from '@/components/dashboard/date-display';
 import { LoadingSpinner } from '@/components/dashboard/loading-spinner';
 import { KioskToggle } from '@/components/dashboard/kiosk-toggle';
 import { WeatherWidget } from '@/components/dashboard/weather-widget';
 import { DailyVerseWidget } from '@/components/dashboard/daily-verse-widget';
-import { IslamicGreetingWidget } from '@/components/dashboard/islamic-greeting-widget';
+import { HadithWidget } from '@/components/dashboard/hadith-widget';
+import { HijriCalendarWidget } from '@/components/dashboard/hijri-calendar-widget';
+import { PlaceholderCard } from '@/components/dashboard/placeholder-card';
 import { EnableAudioOverlay } from '@/components/dashboard/enable-audio-overlay';
 import { PrayerSplashscreen } from '@/components/dashboard/prayer-splashscreen';
 import {
@@ -27,15 +28,14 @@ const initialZone: Zone = DEFAULT_ZONE;
 
 export default function DashboardPage() {
   const [selectedZone, setSelectedZone] = useState<Zone>(DEFAULT_ZONE);
-  const [availableZones, setAvailableZones] = useState<Zone[]>([DEFAULT_ZONE]);
-  const [isCheckingZones, setIsCheckingZones] = useState(true);
+  const [availableZones, setAvailableZones] = useState<Zone[]>([]);
+  const [isCheckingZones, setIsCheckingZones] = useState(false);
   const [prayerTimes, setPrayerTimes] = useState<PrayerDisplay[]>([]);
   const [nextPrayer, setNextPrayer] = useState<{
     name: string;
     time: number;
     key: string;
   } | null>(null);
-  const [hijriDate, setHijriDate] = useState<string>('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [currentTime, setCurrentTime] = useState(new Date());
@@ -72,14 +72,6 @@ export default function DashboardPage() {
     const cleanup = startZoneChecking((zones) => {
       setAvailableZones(zones);
       setIsCheckingZones(false);
-
-      // If current zone is not in working zones, switch to first available
-      const currentZoneValid = zones.find(z => z.code === selectedZone.code);
-      if (!currentZoneValid && zones.length > 0) {
-        console.log(`[Zone] Current zone ${selectedZone.name} not available, switching to ${zones[0].name}`);
-        setSelectedZone(zones[0]);
-        loadPrayerTimes();
-      }
     });
 
     return () => {
@@ -116,9 +108,6 @@ export default function DashboardPage() {
       if (!todayPrayers) {
         throw new Error('Prayer times for today not found');
       }
-
-      // Set Hijri date
-      setHijriDate(todayPrayers.hijri);
 
       // Convert to display format
       const prayers: PrayerDisplay[] = [
@@ -288,7 +277,7 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-emerald-950">
+    <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-emerald-950 flex flex-col">
       {/* Animated background particles */}
       <div className="fixed inset-0 overflow-hidden pointer-events-none">
         {[...Array(15)].map((_, i) => (
@@ -313,13 +302,13 @@ export default function DashboardPage() {
       </div>
 
       {/* Content */}
-      <div className="relative z-10 p-3 md:p-6 max-w-7xl mx-auto">
+      <div className="relative z-10 flex-1 flex flex-col px-3 md:px-4 py-2 md:py-3 overflow-hidden">
         {/* Header */}
         <motion.header
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6 }}
-          className="flex items-center justify-between mb-4"
+          className="flex items-center justify-between mb-2 md:mb-3 shrink-0"
         >
           <div className="flex items-center gap-2 md:gap-3">
             <div className="p-2 md:p-3 bg-gradient-to-br from-emerald-500 to-teal-500 rounded-xl text-2xl md:text-4xl">
@@ -347,10 +336,10 @@ export default function DashboardPage() {
           </div>
         </motion.header>
 
-        {/* Main Content Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-3 md:gap-4 mb-3 md:mb-4">
-          {/* Left Column - Zone, Countdown, Date, Weather */}
-          <div className="lg:col-span-4 flex flex-col gap-2 md:gap-3">
+        {/* Main Content Grid - 3 Columns on Desktop */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-2 md:gap-3 flex-1 min-h-0 mb-2 md:mb-3">
+          {/* Left Column - Zone, Weather, Placeholder */}
+          <div className="lg:col-span-3 flex flex-col gap-2 md:gap-3 shrink-0">
             {/* Zone Selector */}
             <motion.div
               initial={{ opacity: 0, x: -20 }}
@@ -365,56 +354,39 @@ export default function DashboardPage() {
               />
             </motion.div>
 
-            {/* Countdown Timer */}
-            {nextPrayer && (
-              <motion.div
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: 0.2 }}
-              >
-                <CountdownTimer
-                  key={`${nextPrayer.key}-${forceUpdate}`}
-                  targetTimestamp={nextPrayer.time}
-                  prayerName={nextPrayer.name}
-                />
-              </motion.div>
-            )}
-
-            {/* Date Display */}
+            {/* Weather Widget */}
             <motion.div
               initial={{ opacity: 0, x: -20 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ delay: 0.3 }}
             >
-              <DateDisplay
-                hijriDate={hijriDate}
-                zoneName={selectedZone.name}
-              />
+              <WeatherWidget zone={selectedZone} />
             </motion.div>
 
-            {/* Weather Widget */}
+            {/* Placeholder Card */}
             <motion.div
               initial={{ opacity: 0, x: -20 }}
               animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: 0.4 }}
+              transition={{ delay: 0.5 }}
+              className="hidden lg:block"
             >
-              <WeatherWidget zone={selectedZone} />
+              <PlaceholderCard />
             </motion.div>
           </div>
 
-          {/* Right Column - Prayer Times */}
-          <div className="lg:col-span-8">
+          {/* Center Column - Prayer Times (Hero) */}
+          <div className="lg:col-span-6 flex flex-col min-h-0">
             <motion.div
               initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: 0.4 }}
-              className="bg-slate-900/30 backdrop-blur-sm border border-slate-700/50 rounded-2xl p-3 md:p-5"
+              transition={{ delay: 0.2 }}
+              className="bg-slate-900/30 backdrop-blur-sm border border-slate-700/50 rounded-2xl p-2 md:p-3 flex-1 flex flex-col min-h-0"
             >
-              <h2 className="text-lg md:text-2xl font-bold text-white mb-3 md:mb-4">
+              <h2 className="text-xl md:text-3xl font-bold text-white mb-1 md:mb-2 text-center shrink-0">
                 Today's Prayer Times
               </h2>
 
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-2 md:gap-3">
+              <div className="grid grid-cols-2 gap-2 md:gap-3 flex-1 items-center">
                 {prayerTimes.map((prayer, index) => (
                   <PrayerCard
                     key={prayer.name}
@@ -427,17 +399,44 @@ export default function DashboardPage() {
               </div>
             </motion.div>
           </div>
+
+          {/* Right Column - Countdown, Hijri Calendar */}
+          <div className="lg:col-span-3 flex flex-col gap-2 md:gap-3 shrink-0">
+            {/* Countdown Timer */}
+            {nextPrayer && (
+              <motion.div
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 0.2 }}
+              >
+                <CountdownTimer
+                  key={`${nextPrayer.key}-${forceUpdate}`}
+                  targetTimestamp={nextPrayer.time}
+                  prayerName={nextPrayer.name}
+                />
+              </motion.div>
+            )}
+
+            {/* Hijri Calendar */}
+            <motion.div
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.4 }}
+            >
+              <HijriCalendarWidget />
+            </motion.div>
+          </div>
         </div>
 
-        {/* Bottom Row - Daily Verse & Greeting */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4 mb-3 md:mb-4">
-          {/* Islamic Greeting */}
+        {/* Bottom Row - Hadith & Daily Verse */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-2 md:gap-3 shrink-0" style={{ minHeight: '12vh' }}>
+          {/* Hadith of the Hour */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.5 }}
           >
-            <IslamicGreetingWidget />
+            <HadithWidget />
           </motion.div>
 
           {/* Daily Verse */}
@@ -455,7 +454,7 @@ export default function DashboardPage() {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.8 }}
-          className="text-center"
+          className="text-center shrink-0 py-1"
         >
           <p className="text-xs text-slate-500">
             Data from JAKIM e-Solat • API by{' '}
