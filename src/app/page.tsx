@@ -402,14 +402,37 @@ export default function DashboardPage() {
               <WeatherWidget zone={selectedZone} />
             </motion.div>
 
-            {/* Kiblat Finder - Replaces Placeholder */}
+            {/* Kiblat Finder - Mobile only, show notice on desktop */}
+            <motion.div
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.5 }}
+              className="lg:hidden"
+            >
+              <KiblatFinder />
+            </motion.div>
+
+            {/* Desktop Notice for Kiblat Finder */}
             <motion.div
               initial={{ opacity: 0, x: -20 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ delay: 0.5 }}
               className="hidden lg:block"
             >
-              <KiblatFinder />
+              <div className="bg-gradient-to-br from-emerald-950 to-slate-950 rounded-2xl p-6 border border-emerald-800/30 text-center">
+                <div className="p-3 bg-emerald-500/20 rounded-xl w-fit mx-auto mb-4">
+                  <svg className="w-6 h-6 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                  </svg>
+                </div>
+                <h3 className="text-lg font-bold text-white mb-2">Kiblat Finder</h3>
+                <p className="text-emerald-300/70 text-sm">
+                  This feature requires a mobile device with GPS and compass sensors
+                </p>
+                <p className="text-emerald-300/50 text-xs mt-2">
+                  Open on your phone to find Qibla direction
+                </p>
+              </div>
             </motion.div>
           </div>
 
