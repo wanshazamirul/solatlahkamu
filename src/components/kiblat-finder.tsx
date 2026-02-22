@@ -215,11 +215,15 @@ function CompassDisplay({
   compassHeading: number | null;
   location: { latitude: number; longitude: number };
 }) {
-  // The compass face rotates opposite to phone heading (so North stays up)
+  // Based on react-native-qibla-compass reference:
+  // compassRotate = 360 - compassHeading (compass face rotates opposite to phone)
+  // kabaRotate = compassRotate + qiblad (Kaaba arrow = compass rotation + Qibla bearing)
+
   const compassRotation = compassHeading ?? 0;
 
-  // The Qibla arrow points to the relative direction
-  const arrowRotation = relativeDirection ?? 0;
+  // Kaaba arrow rotation = compass face rotation + Qibla bearing
+  // This makes the arrow point to Qibla relative to the compass face
+  const kaabaRotation = compassRotation + qiblaDirection.bearing;
 
   return (
     <motion.div
@@ -232,7 +236,7 @@ function CompassDisplay({
         {/* Outer ring */}
         <div className="absolute inset-0 rounded-full border-4 border-emerald-500/30" />
 
-        {/* Compass face - rotates opposite to phone heading */}
+        {/* Compass face - rotates opposite to phone heading (North stays up) */}
         <motion.div
           animate={{ rotate: -compassRotation }}
           transition={{ type: "spring", stiffness: 50, damping: 20 }}
@@ -246,9 +250,9 @@ function CompassDisplay({
             <div className="absolute right-0 top-1/2 -translate-y-1/2 text-slate-400 text-xs font-bold">E</div>
           </div>
 
-          {/* Qibla indicator - points to relative direction */}
+          {/* Qibla indicator - rotates with compass face + Qibla bearing */}
           <motion.div
-            animate={{ rotate: arrowRotation }}
+            animate={{ rotate: kaabaRotation }}
             transition={{ type: "spring", stiffness: 50, damping: 20 }}
             className="relative"
           >
