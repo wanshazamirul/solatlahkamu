@@ -12,26 +12,30 @@ import { useDeviceOrientation } from '@/hooks/use-device-orientation';
 import { calculateQiblaDirection, formatBearing, formatDistance } from '@/lib/qibla-service';
 import { useState, useEffect, useMemo } from 'react';
 
-export function KiblatFinder() {
+export function KiblatFinder({ initialLocation }: { initialLocation?: { latitude: number; longitude: number } | null }) {
   const [showPermissionModal, setShowPermissionModal] = useState(false);
 
   const gps = useGPSLocation();
   const compass = useDeviceOrientation();
 
+  // Use initial location if available
+  const location = gps.location || initialLocation;
+
   // Calculate Qibla direction when we have GPS
   const qiblaDirection = useMemo(() => {
-    if (gps.location) {
+    if (location) {
       return calculateQiblaDirection(
-        gps.location.latitude,
-        gps.location.longitude
+        location.latitude,
+        location.longitude
       );
     }
     return null;
-  }, [gps.location]);
+  }, [location]);
 
   // Calculate relative direction (compass heading vs Qibla bearing)
   const relativeDirection = useMemo(() => {
     if (qiblaDirection && compass.compass.heading !== null) {
+      // Qibla direction relative to where user is facing
       const relative = qiblaDirection.bearing - compass.compass.heading;
       return (relative + 360) % 360; // Normalize to 0-360
     }
@@ -100,7 +104,7 @@ export function KiblatFinder() {
         </div>
 
         {/* Permission Modal */}
-        {(gps.location === null || compass.isPermissionGranted === false) && (
+        {(!location && compass.isPermissionGranted !== false) && (
           <PermissionPrompt
             onEnable={handleEnableLocation}
             gpsError={gps.error}
@@ -110,12 +114,12 @@ export function KiblatFinder() {
 
         {/* Compass Display */}
         <AnimatePresence>
-          {gps.location && qiblaDirection && (
+          {location && qiblaDirection && (
             <CompassDisplay
               qiblaDirection={qiblaDirection}
               relativeDirection={relativeDirection}
               compassHeading={compass.compass.heading}
-              location={gps.location}
+              location={location}
             />
           )}
         </AnimatePresence>

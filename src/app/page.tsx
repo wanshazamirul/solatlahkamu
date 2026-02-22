@@ -13,7 +13,7 @@ import { HadithWidget } from '@/components/dashboard/hadith-widget';
 import { HijriCalendarWidget } from '@/components/dashboard/hijri-calendar-widget';
 import { PlaceholderCard } from '@/components/dashboard/placeholder-card';
 import { EnableAudioOverlay } from '@/components/dashboard/enable-audio-overlay';
-import { GPSAutoZone } from '@/components/gps-auto-zone';
+import { EnableGPSOverlay } from '@/components/enable-gps-overlay';
 import { KiblatFinder } from '@/components/kiblat-finder';
 import { PrayerSplashscreen } from '@/components/dashboard/prayer-splashscreen';
 import {
@@ -52,6 +52,7 @@ export default function DashboardPage() {
   const azanAudioRef = useRef<HTMLAudioElement | null>(null);
   const [forceUpdate, setForceUpdate] = useState(0);
   const [audioEnabled, setAudioEnabled] = useState(false);
+  const [gpsLocation, setGpsLocation] = useState<{ latitude: number; longitude: number } | null>(null);
 
   // Ref to store today's prayers for next prayer calculation
   const todayPrayersRef = useRef<any>(null);
@@ -364,21 +365,6 @@ export default function DashboardPage() {
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-2 md:gap-3 flex-1 min-h-0 mb-2 md:mb-3">
           {/* Left Column - Zone, Weather, Kiblat Finder */}
           <div className="lg:col-span-3 flex flex-col gap-2 md:gap-3 shrink-0">
-            {/* GPS Auto-Zone */}
-            <motion.div
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: 0.05 }}
-            >
-              <GPSAutoZone
-                onZoneDetected={(zoneCode) => {
-                  const zone = availableZones.find(z => z.code === zoneCode);
-                  if (zone) setSelectedZone(zone);
-                }}
-                currentZone={selectedZone.code}
-              />
-            </motion.div>
-
             {/* Zone Selector */}
             <motion.div
               initial={{ opacity: 0, x: -20 }}
@@ -409,7 +395,7 @@ export default function DashboardPage() {
               transition={{ delay: 0.5 }}
               className="lg:hidden"
             >
-              <KiblatFinder />
+              <KiblatFinder initialLocation={gpsLocation} />
             </motion.div>
 
             {/* Desktop Notice for Kiblat Finder */}
@@ -537,6 +523,22 @@ export default function DashboardPage() {
 
       {/* Enable Audio Overlay */}
       {!audioEnabled && <EnableAudioOverlay onEnable={() => setAudioEnabled(true)} />}
+
+      {/* Enable GPS Overlay */}
+      <EnableGPSOverlay
+        onEnable={(location) => {
+          setGpsLocation(location);
+          // Auto-detect zone from GPS
+          fetch(`https://api.waktusolat.app/zones/${location.latitude}/${location.longitude}`)
+            .then(res => res.json())
+            .then(data => {
+              const zone = availableZones.find(z => z.code === data.zone);
+              if (zone) setSelectedZone(zone);
+            })
+            .catch(err => console.error('Failed to auto-detect zone:', err));
+        }}
+        onSkip={() => setGpsLocation(null)}
+      />
 
       {/* Prayer Splashscreen */}
       {currentSplashPrayer && (
