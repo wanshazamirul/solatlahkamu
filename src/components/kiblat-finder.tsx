@@ -222,7 +222,6 @@ function CompassDisplay({
   const compassRotation = compassHeading ?? 0;
 
   // Kaaba arrow rotation = compass face rotation + Qibla bearing
-  // This makes the arrow point to Qibla relative to the compass face
   const kaabaRotation = compassRotation + qiblaDirection.bearing;
 
   return (
@@ -237,10 +236,9 @@ function CompassDisplay({
         <div className="absolute inset-0 rounded-full border-4 border-emerald-500/30" />
 
         {/* Compass face - rotates opposite to phone heading (North stays up) */}
-        <motion.div
-          animate={{ rotate: -compassRotation }}
-          transition={{ type: "spring", stiffness: 50, damping: 20 }}
-          className="absolute inset-2 rounded-full bg-gradient-to-br from-slate-800 to-slate-900 border-2 border-emerald-600/30 flex items-center justify-center"
+        <div
+          style={{ transform: `rotate(${-compassRotation}deg)` }}
+          className="absolute inset-2 rounded-full bg-gradient-to-br from-slate-800 to-slate-900 border-2 border-emerald-600/30 flex items-center justify-center transition-transform duration-200 ease-out"
         >
           {/* Cardinal directions - these rotate with compass face */}
           <div className="absolute inset-4">
@@ -251,19 +249,31 @@ function CompassDisplay({
           </div>
 
           {/* Qibla indicator - rotates with compass face + Qibla bearing */}
-          <motion.div
-            animate={{ rotate: kaabaRotation }}
-            transition={{ type: "spring", stiffness: 50, damping: 20 }}
-            className="relative"
+          <div
+            style={{ transform: `rotate(${kaabaRotation}deg)` }}
+            className="relative transition-transform duration-200 ease-out"
           >
-            <Navigation className="w-12 h-12 text-emerald-400" />
-            <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-2 h-2 bg-emerald-400 rounded-full" />
-          </motion.div>
-        </motion.div>
+            {/* Large, visible Ka'aba indicator */}
+            <div className="relative flex flex-col items-center justify-center">
+              {/* Ka'aba icon/symbol */}
+              <div className="w-16 h-16 bg-amber-400 rounded-lg flex items-center justify-center shadow-lg border-4 border-amber-500">
+                <div className="w-10 h-10 bg-amber-500 rounded flex items-center justify-center">
+                  <svg className="w-6 h-6 text-amber-900" fill="currentColor" viewBox="0 0 24 24">
+                    <rect x="8" y="6" width="8" height="12" rx="1" />
+                    <path d="M8 6h8v-2h-8v2z" />
+                    <path d="M7 18h10v2h-10v-2z" />
+                  </svg>
+                </div>
+              </div>
+              {/* Arrow pointing up */}
+              <div className="absolute -top-1 left-1/2 -translate-x-1/2 w-0 h-0 border-l-8 border-l-transparent border-r-8 border-r-transparent border-b-12 border-b-amber-400" />
+            </div>
+          </div>
+        </div>
 
         {/* Fixed "you are here" indicator */}
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2">
-          <div className="w-3 h-3 bg-blue-500 rounded-full border-2 border-white" />
+          <div className="w-3 h-3 bg-blue-500 rounded-full border-2 border-white shadow-lg" />
         </div>
       </div>
 
