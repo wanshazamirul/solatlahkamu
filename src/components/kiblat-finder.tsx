@@ -21,6 +21,15 @@ export function KiblatFinder({ initialLocation }: { initialLocation?: { latitude
   // Use initial location if available
   const location = gps.location || initialLocation;
 
+  // Check if we already have GPS permission from overlay
+  useEffect(() => {
+    const gpsGranted = localStorage.getItem('gpsPermissionGranted');
+    if (gpsGranted && initialLocation && !compass.isPermissionGranted) {
+      // Assume compass is also granted if GPS was granted
+      compass.startWatching();
+    }
+  }, [initialLocation]);
+
   // Calculate Qibla direction when we have GPS
   const qiblaDirection = useMemo(() => {
     if (location) {
@@ -33,21 +42,14 @@ export function KiblatFinder({ initialLocation }: { initialLocation?: { latitude
   }, [location]);
 
   // Calculate relative direction (compass heading vs Qibla bearing)
+  // This is how many degrees from current heading to Qibla
   const relativeDirection = useMemo(() => {
     if (qiblaDirection && compass.compass.heading !== null) {
-      // Qibla direction relative to where user is facing
       const relative = qiblaDirection.bearing - compass.compass.heading;
-      return (relative + 360) % 360; // Normalize to 0-360
+      return (relative + 360) % 360;
     }
     return null;
   }, [qiblaDirection, compass.compass.heading]);
-
-  // Auto-start compass when location is ready and permission granted
-  useEffect(() => {
-    if (location && compass.isPermissionGranted === true) {
-      compass.startWatching();
-    }
-  }, [location, compass.isPermissionGranted, compass.startWatching]);
 
   /**
    * Handle "Enable Location" button click
@@ -103,8 +105,8 @@ export function KiblatFinder({ initialLocation }: { initialLocation?: { latitude
           </div>
         </div>
 
-        {/* Permission Modal */}
-        {(!location && compass.isPermissionGranted !== false) && (
+        {/* Permission Modal - only show if no location and compass permission not explicitly denied */}
+        {!location && compass.isPermissionGranted !== false && (
           <PermissionPrompt
             onEnable={handleEnableLocation}
             gpsError={gps.error}
@@ -213,8 +215,11 @@ function CompassDisplay({
   compassHeading: number | null;
   location: { latitude: number; longitude: number };
 }) {
-  // Rotate the compass to show Qibla direction
-  const rotation = relativeDirection ?? 0;
+  // The compass face rotates opposite to phone heading (so North stays up)
+  const compassRotation = compassHeading ?? 0;
+
+  // The Qibla arrow points to the relative direction
+  const arrowRotation = relativeDirection ?? 0;
 
   return (
     <motion.div
@@ -227,13 +232,13 @@ function CompassDisplay({
         {/* Outer ring */}
         <div className="absolute inset-0 rounded-full border-4 border-emerald-500/30" />
 
-        {/* Compass face */}
+        {/* Compass face - rotates opposite to phone heading */}
         <motion.div
-          animate={{ rotate: -rotation }}
+          animate={{ rotate: -compassRotation }}
           transition={{ type: "spring", stiffness: 50, damping: 20 }}
           className="absolute inset-2 rounded-full bg-gradient-to-br from-slate-800 to-slate-900 border-2 border-emerald-600/30 flex items-center justify-center"
         >
-          {/* Cardinal directions */}
+          {/* Cardinal directions - these rotate with compass face */}
           <div className="absolute inset-4">
             <div className="absolute top-0 left-1/2 -translate-x-1/2 text-emerald-400 text-xs font-bold">N</div>
             <div className="absolute bottom-0 left-1/2 -translate-x-1/2 text-slate-400 text-xs font-bold">S</div>
@@ -241,9 +246,9 @@ function CompassDisplay({
             <div className="absolute right-0 top-1/2 -translate-y-1/2 text-slate-400 text-xs font-bold">E</div>
           </div>
 
-          {/* Qibla indicator */}
+          {/* Qibla indicator - points to relative direction */}
           <motion.div
-            animate={{ rotate: rotation }}
+            animate={{ rotate: arrowRotation }}
             transition={{ type: "spring", stiffness: 50, damping: 20 }}
             className="relative"
           >
