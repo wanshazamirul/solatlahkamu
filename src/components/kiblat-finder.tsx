@@ -248,32 +248,32 @@ function CompassDisplay({
             <div className="absolute right-0 top-1/2 -translate-y-1/2 text-slate-400 text-xs font-bold">E</div>
           </div>
 
-          {/* Qibla indicator - rotates with compass face + Qibla bearing */}
+          {/* Qibla indicator - on the outer edge, pointing inward from the edge */}
           <div
             style={{ transform: `rotate(${kaabaRotation}deg)` }}
-            className="relative transition-transform duration-200 ease-out"
+            className="absolute inset-0 transition-transform duration-200 ease-out"
           >
-            {/* Large, visible Ka'aba indicator */}
-            <div className="relative flex flex-col items-center justify-center">
-              {/* Ka'aba icon/symbol */}
-              <div className="w-16 h-16 bg-amber-400 rounded-lg flex items-center justify-center shadow-lg border-4 border-amber-500">
-                <div className="w-10 h-10 bg-amber-500 rounded flex items-center justify-center">
-                  <svg className="w-6 h-6 text-amber-900" fill="currentColor" viewBox="0 0 24 24">
-                    <rect x="8" y="6" width="8" height="12" rx="1" />
-                    <path d="M8 6h8v-2h-8v2z" />
-                    <path d="M7 18h10v2h-10v-2z" />
+            {/* Position on the top edge of compass */}
+            <div className="absolute top-2 left-1/2 -translate-x-1/2 flex flex-col items-center">
+              {/* Arrow pointing to center */}
+              <div className="w-0 h-0 border-l-[6px] border-l-transparent border-r-[6px] border-r-transparent border-b-[10px] border-b-amber-400"></div>
+              {/* Gold Ka'aba box */}
+              <div className="w-8 h-8 bg-amber-400 rounded flex items-center justify-center shadow-lg border-2 border-amber-500 mt-[-2px]">
+                <div className="w-5 h-5 bg-amber-500 rounded-sm flex items-center justify-center">
+                  <svg className="w-3 h-3 text-amber-900" fill="currentColor" viewBox="0 0 24 24">
+                    <rect x="9" y="8" width="6" height="8" rx="0.5" />
                   </svg>
                 </div>
               </div>
-              {/* Arrow pointing up */}
-              <div className="absolute -top-1 left-1/2 -translate-x-1/2 w-0 h-0 border-l-8 border-l-transparent border-r-8 border-r-transparent border-b-12 border-b-amber-400" />
             </div>
           </div>
         </div>
 
-        {/* Fixed "you are here" indicator */}
+        {/* Fixed "you are here" indicator in center */}
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2">
-          <div className="w-3 h-3 bg-blue-500 rounded-full border-2 border-white shadow-lg" />
+          <div className="w-4 h-4 bg-blue-500 rounded-full border-2 border-white shadow-lg flex items-center justify-center">
+            <div className="w-2 h-2 bg-blue-300 rounded-full"></div>
+          </div>
         </div>
       </div>
 
