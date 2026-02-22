@@ -232,45 +232,48 @@ function CompassDisplay({
     >
       {/* Compass Visual */}
       <div className="relative w-64 h-64 mx-auto">
-        {/* Outer ring */}
-        <div className="absolute inset-0 rounded-full border-4 border-emerald-500/30" />
+        {/* Compass container - allows Ka'aba indicator to be placed outside */}
+        <div className="absolute inset-4">
+          {/* Outer ring */}
+          <div className="absolute inset-0 rounded-full border-4 border-emerald-500/30" />
 
-        {/* Compass face - rotates opposite to phone heading (North stays up) */}
-        <div
-          style={{ transform: `rotate(${-compassRotation}deg)` }}
-          className="absolute inset-2 rounded-full bg-gradient-to-br from-slate-800 to-slate-900 border-2 border-emerald-600/30 flex items-center justify-center transition-transform duration-200 ease-out"
-        >
-          {/* Cardinal directions - these rotate with compass face */}
-          <div className="absolute inset-4">
-            <div className="absolute top-0 left-1/2 -translate-x-1/2 text-emerald-400 text-xs font-bold">N</div>
-            <div className="absolute bottom-0 left-1/2 -translate-x-1/2 text-slate-400 text-xs font-bold">S</div>
-            <div className="absolute left-0 top-1/2 -translate-y-1/2 text-slate-400 text-xs font-bold">W</div>
-            <div className="absolute right-0 top-1/2 -translate-y-1/2 text-slate-400 text-xs font-bold">E</div>
-          </div>
-
-          {/* Qibla indicator - on the outer edge, pointing inward from the edge */}
+          {/* Compass face - rotates opposite to phone heading (North stays up) */}
           <div
-            style={{ transform: `rotate(${kaabaRotation}deg)` }}
-            className="absolute inset-0 transition-transform duration-200 ease-out"
+            style={{ transform: `rotate(${-compassRotation}deg)` }}
+            className="absolute inset-0 rounded-full bg-gradient-to-br from-slate-800 to-slate-900 border-2 border-emerald-600/30 flex items-center justify-center transition-transform duration-200 ease-out"
           >
-            {/* Position on the top edge of compass */}
-            <div className="absolute top-2 left-1/2 -translate-x-1/2 flex flex-col items-center">
-              {/* Arrow pointing to center */}
-              <div className="w-0 h-0 border-l-[6px] border-l-transparent border-r-[6px] border-r-transparent border-b-[10px] border-b-amber-400"></div>
-              {/* Gold Ka'aba box */}
-              <div className="w-8 h-8 bg-amber-400 rounded flex items-center justify-center shadow-lg border-2 border-amber-500 mt-[-2px]">
-                <div className="w-5 h-5 bg-amber-500 rounded-sm flex items-center justify-center">
-                  <svg className="w-3 h-3 text-amber-900" fill="currentColor" viewBox="0 0 24 24">
-                    <rect x="9" y="8" width="6" height="8" rx="0.5" />
-                  </svg>
-                </div>
+            {/* Cardinal directions - these rotate with compass face */}
+            <div className="absolute inset-4">
+              <div className="absolute top-0 left-1/2 -translate-x-1/2 text-emerald-400 text-xs font-bold">N</div>
+              <div className="absolute bottom-0 left-1/2 -translate-x-1/2 text-slate-400 text-xs font-bold">S</div>
+              <div className="absolute left-0 top-1/2 -translate-y-1/2 text-slate-400 text-xs font-bold">W</div>
+              <div className="absolute right-0 top-1/2 -translate-y-1/2 text-slate-400 text-xs font-bold">E</div>
+            </div>
+          </div>
+        </div>
+
+        {/* Ka'aba indicator - OUTSIDE compass, rotates independently to point at Qibla */}
+        <div
+          style={{ transform: `rotate(${kaabaRotation}deg)` }}
+          className="absolute inset-0 transition-transform duration-200 ease-out pointer-events-none"
+        >
+          {/* Position on the top edge - OUTSIDE the compass */}
+          <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1 flex flex-col items-center">
+            {/* Arrow pointing down to compass */}
+            <div className="w-0 h-0 border-l-[8px] border-l-transparent border-r-[8px] border-r-transparent border-b-[12px] border-b-amber-400"></div>
+            {/* Gold Ka'aba box */}
+            <div className="w-10 h-10 bg-amber-400 rounded flex items-center justify-center shadow-lg border-2 border-amber-500">
+              <div className="w-6 h-6 bg-amber-500 rounded flex items-center justify-center">
+                <svg className="w-4 h-4 text-amber-900" fill="currentColor" viewBox="0 0 24 24">
+                  <rect x="8" y="6" width="8" height="12" rx="1" />
+                </svg>
               </div>
             </div>
           </div>
         </div>
 
         {/* Fixed "you are here" indicator in center */}
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2">
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 translate-y-4">
           <div className="w-4 h-4 bg-blue-500 rounded-full border-2 border-white shadow-lg flex items-center justify-center">
             <div className="w-2 h-2 bg-blue-300 rounded-full"></div>
           </div>
