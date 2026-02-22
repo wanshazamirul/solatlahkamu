@@ -13,6 +13,8 @@ import { HadithWidget } from '@/components/dashboard/hadith-widget';
 import { HijriCalendarWidget } from '@/components/dashboard/hijri-calendar-widget';
 import { PlaceholderCard } from '@/components/dashboard/placeholder-card';
 import { EnableAudioOverlay } from '@/components/dashboard/enable-audio-overlay';
+import { GPSAutoZone } from '@/components/gps-auto-zone';
+import { KiblatFinder } from '@/components/kiblat-finder';
 import { PrayerSplashscreen } from '@/components/dashboard/prayer-splashscreen';
 import {
   fetchPrayerTimes,
@@ -360,8 +362,23 @@ export default function DashboardPage() {
 
         {/* Main Content Grid - 3 Columns on Desktop */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-2 md:gap-3 flex-1 min-h-0 mb-2 md:mb-3">
-          {/* Left Column - Zone, Weather, Placeholder */}
+          {/* Left Column - Zone, Weather, Kiblat Finder */}
           <div className="lg:col-span-3 flex flex-col gap-2 md:gap-3 shrink-0">
+            {/* GPS Auto-Zone */}
+            <motion.div
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.05 }}
+            >
+              <GPSAutoZone
+                onZoneDetected={(zoneCode) => {
+                  const zone = availableZones.find(z => z.code === zoneCode);
+                  if (zone) setSelectedZone(zone);
+                }}
+                currentZone={selectedZone.code}
+              />
+            </motion.div>
+
             {/* Zone Selector */}
             <motion.div
               initial={{ opacity: 0, x: -20 }}
@@ -385,14 +402,14 @@ export default function DashboardPage() {
               <WeatherWidget zone={selectedZone} />
             </motion.div>
 
-            {/* Placeholder Card */}
+            {/* Kiblat Finder - Replaces Placeholder */}
             <motion.div
               initial={{ opacity: 0, x: -20 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ delay: 0.5 }}
               className="hidden lg:block"
             >
-              <PlaceholderCard />
+              <KiblatFinder />
             </motion.div>
           </div>
 
