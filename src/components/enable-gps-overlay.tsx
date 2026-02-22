@@ -65,6 +65,7 @@ export function EnableGPSOverlay({ onEnable, onSkip }: EnableGPSOverlayProps) {
 
       // Mark as enabled
       localStorage.setItem('gpsPermissionGranted', 'true');
+      localStorage.setItem('cachedGPSLocation', JSON.stringify(location));
       setIsVisible(false);
       onEnable(location);
     } catch (error) {

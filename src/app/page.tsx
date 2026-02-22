@@ -63,35 +63,72 @@ export default function DashboardPage() {
   // Ref to track if we should auto-close
   const shouldAutoCloseRef = useRef(true);
 
-  // Check if GPS was already granted
+  // On page load: try to get GPS location first, fall back to manual/default
   useEffect(() => {
-    const gpsGranted = localStorage.getItem('gpsPermissionGranted');
-    if (gpsGranted) {
-      // Try to get cached GPS location
-      const cached = localStorage.getItem('cachedGPSLocation');
-      if (cached) {
-        const loc = JSON.parse(cached);
-        setGpsLocation(loc);
-        // Try to load zone from cache
-        const cachedZone = localStorage.getItem('cachedZone');
-        if (cachedZone && availableZones.length > 0) {
-          const zone = availableZones.find(z => z.code === cachedZone);
-          if (zone) setSelectedZone(zone);
-        }
-      } else if (availableZones.length > 0) {
-        // No cached location, use default
-        setSelectedZone(DEFAULT_ZONE);
+    const initZone = async () => {
+      // Check if audio is already enabled
+      const hasEnabled = localStorage.getItem('azanAudioEnabled');
+      if (hasEnabled) {
+        setAudioEnabled(true);
       }
-    } else {
-      // No GPS permission, use default zone
-      setSelectedZone(DEFAULT_ZONE);
-    }
 
-    // Check if audio is already enabled
-    const hasEnabled = localStorage.getItem('azanAudioEnabled');
-    if (hasEnabled) {
-      setAudioEnabled(true);
-    }
+      // Check if GPS permission was previously granted
+      const gpsGranted = localStorage.getItem('gpsPermissionGranted');
+
+      if (gpsGranted && navigator.geolocation) {
+        // Try to get fresh GPS location
+        try {
+          const position = await new Promise<GeolocationPosition>((resolve, reject) => {
+            navigator.geolocation.getCurrentPosition(
+              resolve,
+              reject,
+              { enableHighAccuracy: true, timeout: 10000 }
+            );
+          });
+
+          const location = {
+            latitude: position.coords.latitude,
+            longitude: position.coords.longitude,
+          };
+
+          setGpsLocation(location);
+          localStorage.setItem('cachedGPSLocation', JSON.stringify(location));
+
+          // Auto-detect zone from GPS
+          if (availableZones.length > 0) {
+            try {
+              const response = await fetch(`https://api.waktusolat.app/zones/${location.latitude}/${location.longitude}`);
+              const data = await response.json();
+              const zone = availableZones.find(z => z.code === data.zone);
+              if (zone) {
+                setSelectedZone(zone);
+                localStorage.setItem('cachedZone', data.zone);
+                return;
+              }
+            } catch (err) {
+              console.error('Failed to auto-detect zone:', err);
+            }
+          }
+        } catch (err) {
+          console.log('GPS fetch failed, using manual/default zone:', err);
+        }
+      }
+
+      // Fallback: Use cached zone or default
+      const cachedZone = localStorage.getItem('cachedZone');
+      if (cachedZone && availableZones.length > 0) {
+        const zone = availableZones.find(z => z.code === cachedZone);
+        if (zone) {
+          setSelectedZone(zone);
+          return;
+        }
+      }
+
+      // Final fallback: Default zone
+      setSelectedZone(DEFAULT_ZONE);
+    };
+
+    initZone();
   }, [availableZones]);
 
   // Load prayer times when zone is selected
@@ -559,34 +596,14 @@ export default function DashboardPage() {
 
       {/* Enable GPS Overlay */}
       <EnableGPSOverlay
-        onEnable={async (location) => {
+        onEnable={(location) => {
           setGpsLocation(location);
-          // Cache GPS location
-          localStorage.setItem('cachedGPSLocation', JSON.stringify(location));
-
-          // Auto-detect zone from GPS
-          try {
-            const response = await fetch(`https://api.waktusolat.app/zones/${location.latitude}/${location.longitude}`);
-            const data = await response.json();
-            const zone = availableZones.find(z => z.code === data.zone);
-            if (zone) {
-              setSelectedZone(zone);
-              localStorage.setItem('cachedZone', data.zone);
-            }
-          } catch (err) {
-            console.error('Failed to auto-detect zone:', err);
-            // Use default zone if detection fails
-            if (availableZones.length > 0) {
-              setSelectedZone(DEFAULT_ZONE);
-            }
-          }
+          // Zone detection will happen in initZone on next render
+          // Trigger re-init by setting a flag or just let it flow through
         }}
         onSkip={() => {
           setGpsLocation(null);
-          // Use default zone when skipped
-          if (availableZones.length > 0) {
-            setSelectedZone(DEFAULT_ZONE);
-          }
+          // Use default zone when skipped - initZone will handle this
         }}
       />
 
