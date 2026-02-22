@@ -42,12 +42,12 @@ export function KiblatFinder({ initialLocation }: { initialLocation?: { latitude
     return null;
   }, [qiblaDirection, compass.compass.heading]);
 
-  // Auto-start compass when GPS is ready
+  // Auto-start compass when location is ready and permission granted
   useEffect(() => {
-    if (gps.location && compass.isPermissionGranted === true) {
+    if (location && compass.isPermissionGranted === true) {
       compass.startWatching();
     }
-  }, [gps.location, compass.isPermissionGranted]);
+  }, [location, compass.isPermissionGranted, compass.startWatching]);
 
   /**
    * Handle "Enable Location" button click

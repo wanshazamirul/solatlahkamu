@@ -89,16 +89,25 @@ export function useDeviceOrientation(): UseCompassReturn {
    * Handle orientation event
    */
   const handleOrientation = useCallback((event: DeviceOrientationEvent) => {
+    console.log('[Compass] Device orientation event:', {
+      webkitCompassHeading: event.webkitCompassHeading,
+      alpha: event.alpha,
+      beta: event.beta,
+      gamma: event.gamma,
+    });
+
     // Use webkitCompassHeading for iOS, alpha for Android
     let heading: number | null = null;
 
     if (event.webkitCompassHeading !== undefined) {
       // iOS
       heading = event.webkitCompassHeading;
+      console.log('[Compass] iOS heading:', heading);
     } else if (event.alpha !== null) {
       // Android (alpha is 0-360, with 0 = North)
       // Note: Android alpha is opposite direction, need to invert
       heading = (360 - event.alpha) % 360;
+      console.log('[Compass] Android heading:', heading, 'from alpha:', event.alpha);
     }
 
     const accuracy = event.webkitCompassAccuracy ?? null;
@@ -124,6 +133,7 @@ export function useDeviceOrientation(): UseCompassReturn {
       return;
     }
 
+    console.log('[Compass] Starting to watch device orientation...');
     window.addEventListener('deviceorientation', handleOrientation);
     setIsWatching(true);
   }, [isSupported, isPermissionGranted, handleOrientation]);
