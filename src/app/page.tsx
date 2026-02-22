@@ -29,7 +29,7 @@ import { DEFAULT_ZONE, Zone, PrayerDisplay } from '@/types/waktu-solat';
 const initialZone: Zone = DEFAULT_ZONE;
 
 export default function DashboardPage() {
-  const [selectedZone, setSelectedZone] = useState<Zone>(DEFAULT_ZONE);
+  const [selectedZone, setSelectedZone] = useState<Zone | null>(null);
   const [availableZones, setAvailableZones] = useState<Zone[]>([]);
   const [isCheckingZones, setIsCheckingZones] = useState(false);
   const [prayerTimes, setPrayerTimes] = useState<PrayerDisplay[]>([]);
@@ -63,13 +63,41 @@ export default function DashboardPage() {
   // Ref to track if we should auto-close
   const shouldAutoCloseRef = useRef(true);
 
+  // Check if GPS was already granted
   useEffect(() => {
-    loadPrayerTimes();
+    const gpsGranted = localStorage.getItem('gpsPermissionGranted');
+    if (gpsGranted) {
+      // Try to get cached GPS location
+      const cached = localStorage.getItem('cachedGPSLocation');
+      if (cached) {
+        const loc = JSON.parse(cached);
+        setGpsLocation(loc);
+        // Try to load zone from cache
+        const cachedZone = localStorage.getItem('cachedZone');
+        if (cachedZone && availableZones.length > 0) {
+          const zone = availableZones.find(z => z.code === cachedZone);
+          if (zone) setSelectedZone(zone);
+        }
+      } else if (availableZones.length > 0) {
+        // No cached location, use default
+        setSelectedZone(DEFAULT_ZONE);
+      }
+    } else {
+      // No GPS permission, use default zone
+      setSelectedZone(DEFAULT_ZONE);
+    }
 
     // Check if audio is already enabled
     const hasEnabled = localStorage.getItem('azanAudioEnabled');
     if (hasEnabled) {
       setAudioEnabled(true);
+    }
+  }, [availableZones]);
+
+  // Load prayer times when zone is selected
+  useEffect(() => {
+    if (selectedZone) {
+      loadPrayerTimes();
     }
   }, [selectedZone]);
 
@@ -101,6 +129,11 @@ export default function DashboardPage() {
   }, []);
 
   const loadPrayerTimes = async () => {
+    if (!selectedZone) {
+      setLoading(false);
+      return;
+    }
+
     setLoading(true);
     setError(null);
 
@@ -178,7 +211,7 @@ export default function DashboardPage() {
       console.error('Error loading prayer times:', err);
 
       // Better error message with zone info
-      setError(`Zone "${selectedZone.name}" (${selectedZone.code}) is not available. Please try another zone.`);
+      setError(`Zone "${selectedZone?.name || 'Unknown'}" (${selectedZone?.code || 'N/A'}) is not available. Please try another zone.`);
       setLoading(false);
     }
   };
@@ -372,7 +405,7 @@ export default function DashboardPage() {
               transition={{ delay: 0.1 }}
             >
               <ZoneSelector
-                selectedZone={selectedZone}
+                selectedZone={selectedZone || DEFAULT_ZONE}
                 onZoneChange={setSelectedZone}
                 zones={availableZones}
                 isLoading={isCheckingZones}
@@ -385,7 +418,7 @@ export default function DashboardPage() {
               animate={{ opacity: 1, x: 0 }}
               transition={{ delay: 0.3 }}
             >
-              <WeatherWidget zone={selectedZone} />
+              <WeatherWidget zone={selectedZone || DEFAULT_ZONE} />
             </motion.div>
 
             {/* Kiblat Finder - Mobile only, show notice on desktop */}
@@ -526,18 +559,35 @@ export default function DashboardPage() {
 
       {/* Enable GPS Overlay */}
       <EnableGPSOverlay
-        onEnable={(location) => {
+        onEnable={async (location) => {
           setGpsLocation(location);
+          // Cache GPS location
+          localStorage.setItem('cachedGPSLocation', JSON.stringify(location));
+
           // Auto-detect zone from GPS
-          fetch(`https://api.waktusolat.app/zones/${location.latitude}/${location.longitude}`)
-            .then(res => res.json())
-            .then(data => {
-              const zone = availableZones.find(z => z.code === data.zone);
-              if (zone) setSelectedZone(zone);
-            })
-            .catch(err => console.error('Failed to auto-detect zone:', err));
+          try {
+            const response = await fetch(`https://api.waktusolat.app/zones/${location.latitude}/${location.longitude}`);
+            const data = await response.json();
+            const zone = availableZones.find(z => z.code === data.zone);
+            if (zone) {
+              setSelectedZone(zone);
+              localStorage.setItem('cachedZone', data.zone);
+            }
+          } catch (err) {
+            console.error('Failed to auto-detect zone:', err);
+            // Use default zone if detection fails
+            if (availableZones.length > 0) {
+              setSelectedZone(DEFAULT_ZONE);
+            }
+          }
         }}
-        onSkip={() => setGpsLocation(null)}
+        onSkip={() => {
+          setGpsLocation(null);
+          // Use default zone when skipped
+          if (availableZones.length > 0) {
+            setSelectedZone(DEFAULT_ZONE);
+          }
+        }}
       />
 
       {/* Prayer Splashscreen */}
